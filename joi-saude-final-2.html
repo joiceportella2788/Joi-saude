@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Joi · Agente de Saúde</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --noite:#0D1B2A;--card:#162436;--card2:#1c2e42;--laranja:#FF6B35;--agua:#00C9A7;
+  --amarelo:#FFD23F;--branco:#F0EBE3;--cinza:#7A9BB5;--borda:#243650;--roxo:#8B5CF6;--rosa:#F472B6;
+  --vermelho:#ef4444;--verde-ok:#22c55e;
+}
+body{font-family:'Nunito',sans-serif;background:var(--noite);color:var(--branco);min-height:100vh}
+
+/* ── API SETUP MODAL ── */
+.setup-modal{position:fixed;inset:0;z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(13,27,42,.97)}
+.setup-modal.hide{display:none}
+.setup-box{background:var(--card);border:1px solid var(--borda);border-radius:20px;padding:28px;max-width:440px;width:100%}
+.setup-logo{font-size:2.5rem;text-align:center;margin-bottom:8px}
+.setup-title{font-size:1.4rem;font-weight:900;color:var(--laranja);text-align:center;margin-bottom:4px}
+.setup-sub{font-size:.8rem;color:var(--cinza);text-align:center;margin-bottom:24px;line-height:1.6}
+.setup-label{font-size:.72rem;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--agua);margin-bottom:6px;display:block}
+.setup-input{width:100%;background:var(--card2);border:1px solid var(--borda);border-radius:10px;padding:12px 14px;color:var(--branco);font-family:'Nunito',sans-serif;font-size:.85rem;outline:none;transition:border-color .2s}
+.setup-input:focus{border-color:var(--agua)}
+.setup-btn{width:100%;background:var(--laranja);color:white;border:none;border-radius:12px;padding:13px;font-family:'Nunito',sans-serif;font-size:.88rem;font-weight:800;cursor:pointer;margin-top:14px;letter-spacing:.04em;text-transform:uppercase;transition:all .2s}
+.setup-btn:hover{background:#e85a28}
+.setup-note{font-size:.7rem;color:var(--cinza);text-align:center;margin-top:12px;line-height:1.6}
+
+/* ── HERO ── */
+.hero{background:linear-gradient(135deg,#0D1B2A 0%,#1a2f45 60%,#0f2538 100%);padding:20px 20px 0;border-bottom:2px solid var(--laranja);position:sticky;top:0;z-index:100}
+.hero-top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.hero-brand{font-size:.68rem;font-weight:800;letter-spacing:.18em;text-transform:uppercase;color:var(--agua);margin-bottom:3px}
+.hero-week{font-size:clamp(1.4rem,5vw,2.4rem);font-weight:900;color:var(--laranja);line-height:1;letter-spacing:-.02em}
+.hero-sub{font-size:.72rem;font-weight:600;color:var(--cinza);margin-top:3px}
+.hero-actions{display:flex;flex-direction:column;gap:7px;align-items:flex-end}
+.btn-gerar{background:var(--laranja);color:white;border:none;border-radius:50px;padding:11px 18px;font-family:'Nunito',sans-serif;font-size:.78rem;font-weight:800;cursor:pointer;letter-spacing:.04em;text-transform:uppercase;box-shadow:0 4px 20px rgba(255,107,53,.4);transition:all .2s;white-space:nowrap}
+.btn-gerar:hover{background:#e85a28;transform:translateY(-1px)}
+.btn-gerar:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.btn-saude{background:transparent;color:var(--agua);border:1px solid var(--agua);border-radius:50px;padding:7px 14px;font-family:'Nunito',sans-serif;font-size:.72rem;font-weight:800;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap}
+.btn-saude:hover{background:var(--agua);color:var(--noite)}
+.macro-row{display:flex;gap:7px;flex-wrap:wrap;padding-bottom:12px}
+.mpill{background:var(--card);border:1px solid var(--borda);border-radius:20px;padding:4px 10px;font-size:.68rem;font-weight:700;white-space:nowrap}
+.mpill span{color:var(--agua);margin-right:3px}
+
+/* ── SAÚDE PAINEL ── */
+.saude-modal{display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;padding:16px}
+.saude-modal.open{display:flex}
+.saude-overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+.saude-box{position:relative;background:var(--card);border:1px solid var(--borda);border-radius:16px;width:100%;max-width:620px;max-height:88vh;overflow:hidden;display:flex;flex-direction:column;z-index:1;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.saude-hdr{background:linear-gradient(135deg,#1a2f45,#0f2538);padding:18px 20px;border-bottom:2px solid var(--laranja);display:flex;align-items:center;justify-content:space-between}
+.saude-hdr h2{font-weight:900;font-size:1.15rem;color:var(--laranja)}
+.saude-hdr p{font-size:.7rem;color:var(--cinza);margin-top:2px}
+.saude-close{background:rgba(255,255,255,.1);border:none;color:var(--branco);width:30px;height:30px;border-radius:50%;cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif}
+.saude-body{overflow-y:auto;flex:1;padding:18px}
+.saude-section{margin-bottom:20px}
+.saude-section-title{font-size:.65rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--agua);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--borda)}
+.saude-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:8px}
+.saude-item{background:var(--card2);border:1px solid var(--borda);border-radius:10px;padding:10px 12px}
+.saude-item-label{font-size:.62rem;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--cinza);margin-bottom:3px}
+.saude-item-val{font-size:1rem;font-weight:900;line-height:1}
+.saude-item-ref{font-size:.65rem;color:var(--cinza);margin-top:2px}
+.val-ok{color:var(--verde-ok)}
+.val-alert{color:var(--amarelo)}
+.val-bad{color:var(--vermelho)}
+.med-item{background:var(--card2);border:1px solid var(--borda);border-left:3px solid var(--laranja);border-radius:10px;padding:11px 13px;margin-bottom:8px}
+.med-nome{font-weight:800;font-size:.85rem;color:var(--branco)}
+.med-dose{font-size:.75rem;color:var(--cinza);margin-top:2px;line-height:1.5}
+.med-badge{display:inline-block;background:rgba(255,107,53,.15);color:var(--laranja);border-radius:8px;padding:2px 7px;font-size:.62rem;font-weight:800;margin-top:4px}
+.alerta-box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:12px 14px;margin-bottom:8px}
+.alerta-title{font-size:.72rem;font-weight:800;color:var(--vermelho);margin-bottom:3px}
+.alerta-txt{font-size:.76rem;color:#fca5a5;line-height:1.5}
+
+/* ── STATUS ── */
+.gen-status{background:var(--card);border-left:3px solid var(--agua);padding:9px 16px;font-size:.78rem;font-weight:600;color:var(--agua);display:none}
+.gen-status.show{display:block}
+.gen-status.err{border-color:var(--vermelho);color:var(--vermelho)}
+
+/* ── DAYS NAV ── */
+.days-nav{background:var(--card);border-bottom:1px solid var(--borda);display:flex;overflow-x:auto;scrollbar-width:none;padding:0 6px}
+.days-nav::-webkit-scrollbar{display:none}
+.day-tab{padding:11px 13px 9px;font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--cinza);cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;display:flex;flex-direction:column;align-items:center;gap:3px;border:none;background:none;font-family:'Nunito',sans-serif;transition:all .18s}
+.day-tab:hover{color:var(--branco)}
+.day-tab.active{color:var(--laranja);border-bottom:3px solid var(--laranja)}
+.tbadge{font-size:.53rem;font-weight:700;padding:2px 5px;border-radius:8px;letter-spacing:.03em}
+.tb-musc{background:rgba(139,92,246,.25);color:#a78bfa}
+.tb-mat{background:rgba(255,210,63,.2);color:var(--amarelo)}
+.tb-card{background:rgba(0,201,167,.2);color:var(--agua)}
+.tb-corr{background:rgba(244,114,182,.2);color:var(--rosa)}
+.tb-prep{background:rgba(255,107,53,.2);color:var(--laranja)}
+
+/* ── CONTENT ── */
+.content{max-width:860px;margin:0 auto;padding:20px 14px 100px}
+.day-panel{display:none}
+.day-panel.active{display:block;animation:up .22s ease}
+@keyframes up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.empty-state{text-align:center;padding:50px 20px;color:var(--cinza)}
+.empty-state .icon{font-size:2.5rem;margin-bottom:10px}
+.empty-state h3{font-size:1.1rem;font-weight:800;color:var(--laranja);margin-bottom:5px}
+.empty-state p{font-size:.8rem;line-height:1.6}
+
+/* ── DAY HEADER ── */
+.day-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap}
+.day-name{font-size:clamp(1.6rem,5vw,2.2rem);font-weight:900;color:var(--laranja);line-height:1;letter-spacing:-.02em}
+.day-desc{font-size:.76rem;font-weight:600;color:var(--cinza);margin-top:3px}
+.treino-chip{background:var(--card2);border:1px solid var(--borda);border-radius:11px;padding:9px 13px;font-size:.74rem;font-weight:700;line-height:1.5;min-width:150px;border-left:3px solid var(--agua)}
+.treino-chip-label{font-size:.6rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--agua);margin-bottom:2px}
+
+/* ── BARIAT REMINDER ── */
+.bariat-lembrete{background:rgba(255,107,53,.1);border:1px solid rgba(255,107,53,.3);border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:.76rem;color:var(--laranja);font-weight:700;display:flex;align-items:center;gap:8px}
+
+/* ── TIMELINE ── */
+.timeline{display:flex;flex-direction:column;position:relative}
+.timeline::before{content:'';position:absolute;left:46px;top:22px;bottom:22px;width:2px;background:var(--borda)}
+.meal-row{display:flex;align-items:flex-start;position:relative}
+.meal-time{width:46px;padding-top:15px;font-size:.61rem;font-weight:800;color:var(--cinza);letter-spacing:.04em;flex-shrink:0;text-align:right;padding-right:11px}
+.meal-dot{width:11px;height:11px;border-radius:50%;background:var(--agua);margin-top:18px;flex-shrink:0;position:relative;z-index:1;box-shadow:0 0 0 3px rgba(0,201,167,.2)}
+.meal-dot.dt{background:var(--roxo);box-shadow:0 0 0 3px rgba(139,92,246,.2)}
+.meal-dot.dp{background:var(--laranja);box-shadow:0 0 0 3px rgba(255,107,53,.2)}
+.meal-dot.dg{background:var(--borda)}
+.meal-card{flex:1;margin-left:11px;margin-bottom:13px;background:var(--card);border-radius:11px;overflow:hidden;border:1px solid var(--borda);transition:border-color .2s}
+.meal-card:hover{border-color:var(--agua)}
+.meal-card-header{padding:10px 14px 7px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--borda)}
+.meal-name{font-weight:800;font-size:.81rem;color:var(--branco)}
+.meal-kcal{font-size:.66rem;font-weight:700;color:var(--agua);background:rgba(0,201,167,.12);padding:2px 7px;border-radius:20px}
+.meal-items{padding:9px 14px 11px;font-size:.78rem;color:#9ab5cc;line-height:1.9}
+.meal-item{display:flex;gap:5px;align-items:baseline}
+.meal-item::before{content:'→';color:var(--laranja);font-size:.72rem;flex-shrink:0;font-weight:800}
+.meal-tip{background:rgba(255,210,63,.08);border-top:1px solid rgba(255,210,63,.15);padding:6px 14px;font-size:.69rem;color:var(--amarelo);font-weight:600}
+.meal-card.tc{background:rgba(139,92,246,.1);border-color:rgba(139,92,246,.3)}
+.meal-card.tc .meal-card-header{background:rgba(139,92,246,.15);border-color:rgba(139,92,246,.2)}
+.meal-card.tc .meal-name{color:#a78bfa}
+.meal-card.tm{background:rgba(255,210,63,.07);border-color:rgba(255,210,63,.25)}
+.meal-card.tm .meal-card-header{background:rgba(255,210,63,.1);border-color:rgba(255,210,63,.15)}
+.meal-card.tm .meal-name{color:var(--amarelo)}
+.meal-card.tr{background:rgba(244,114,182,.08);border-color:rgba(244,114,182,.25)}
+.meal-card.tr .meal-card-header{background:rgba(244,114,182,.1);border-color:rgba(244,114,182,.15)}
+.meal-card.tr .meal-name{color:var(--rosa)}
+.meal-card.tg{background:transparent;border:1px dashed var(--borda)}
+.meal-card.tg .meal-card-header{background:transparent;border:none}
+.meal-card.tg .meal-name{color:var(--cinza);font-weight:600}
+
+/* ── SUB MODAL ── */
+.sub-trigger{cursor:pointer;border-bottom:2px dashed var(--agua);color:var(--branco);transition:color .15s}
+.sub-trigger:hover{color:var(--agua)}
+.sub-modal{display:none;position:fixed;inset:0;z-index:500;align-items:center;justify-content:center;padding:16px}
+.sub-modal.open{display:flex}
+.sub-overlay{position:absolute;inset:0;background:rgba(0,0,0,.7);backdrop-filter:blur(4px)}
+.sub-box{position:relative;background:var(--card);border:1px solid var(--borda);border-radius:16px;width:100%;max-width:560px;max-height:82vh;overflow:hidden;display:flex;flex-direction:column;z-index:1;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.sub-hdr{background:var(--laranja);padding:14px 18px;display:flex;align-items:center;justify-content:space-between}
+.sub-hdr h3{font-weight:900;font-size:1rem;color:white}
+.sub-hdr p{font-size:.68rem;color:rgba(255,255,255,.8);font-weight:600;margin-top:1px}
+.sub-close{background:rgba(0,0,0,.2);border:none;color:white;width:27px;height:27px;border-radius:50%;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;font-family:'Nunito',sans-serif}
+.sub-body{overflow-y:auto;flex:1}
+.sub-table{width:100%;border-collapse:collapse;font-size:.77rem}
+.sub-table th{background:var(--card2);padding:7px 12px;text-align:left;font-size:.61rem;font-weight:800;letter-spacing:.09em;text-transform:uppercase;color:var(--cinza);border-bottom:1px solid var(--borda);position:sticky;top:0}
+.sub-table td{padding:8px 12px;border-bottom:1px solid var(--borda);color:#9ab5cc;vertical-align:middle}
+.sub-table tr:last-child td{border-bottom:none}
+.sub-table tr:hover td{background:var(--card2)}
+.ktag{background:rgba(0,201,167,.15);color:var(--agua);border-radius:8px;padding:2px 6px;font-size:.66rem;font-weight:800}
+.ptag{background:rgba(255,210,63,.15);color:var(--amarelo);border-radius:8px;padding:2px 5px;font-size:.6rem;font-weight:700;margin-left:3px}
+
+/* ── PREP ── */
+.prep-wrap{background:var(--card);border:1px solid var(--borda);border-radius:14px;overflow:hidden;margin-top:20px}
+.prep-hero{background:linear-gradient(135deg,var(--laranja),#e85a28);padding:18px;color:white}
+.prep-hero h2{font-size:1.4rem;font-weight:900;letter-spacing:-.02em}
+.prep-hero p{font-size:.73rem;font-weight:600;opacity:.85;margin-top:2px}
+.prep-body{padding:14px}
+.prep-block{background:var(--card2);border:1px solid var(--borda);border-radius:9px;padding:12px 14px;margin-bottom:9px}
+.prep-block-title{font-weight:800;font-size:.78rem;color:var(--branco);margin-bottom:7px;display:flex;align-items:center;gap:6px}
+.prep-block-title .chip{background:var(--laranja);color:white;border-radius:20px;padding:2px 7px;font-size:.58rem;font-weight:800}
+.prep-step{font-size:.76rem;color:#9ab5cc;line-height:1.85;display:flex;gap:6px;margin-bottom:2px}
+.prep-step .n{background:rgba(0,201,167,.2);color:var(--agua);border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;font-size:.58rem;font-weight:800;flex-shrink:0;margin-top:3px}
+.prep-note{margin-top:7px;padding-top:7px;border-top:1px solid var(--borda);font-size:.68rem;color:var(--cinza);font-style:italic}
+.marmita-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:8px;margin-top:11px}
+.marmita-c{background:var(--noite);border:1px solid var(--borda);border-radius:8px;padding:11px;border-left:3px solid var(--laranja)}
+.marmita-c-day{font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--laranja);margin-bottom:4px}
+.marmita-c-items{font-size:.74rem;color:#9ab5cc;line-height:1.7}
+.marmita-c-kcal{margin-top:4px;font-size:.64rem;color:var(--cinza);font-weight:700}
+.var-box{background:var(--card);border:1px solid var(--borda);border-radius:11px;padding:14px;margin-top:14px}
+.var-box h3{font-weight:900;font-size:.95rem;color:var(--laranja);margin-bottom:4px}
+.var-box p{font-size:.76rem;color:var(--cinza);margin-bottom:9px;line-height:1.6}
+.var-tags{display:flex;flex-wrap:wrap;gap:6px}
+.vtag{background:var(--card2);border:1px solid var(--borda);border-radius:20px;padding:4px 11px;font-size:.71rem;font-weight:700;color:var(--branco);cursor:pointer;transition:all .18s}
+.vtag:hover{background:var(--laranja);border-color:var(--laranja);color:white}
+
+/* ── RUA ── */
+.rua-item{font-size:.77rem;color:#9ab5cc;line-height:1.7;padding:6px 0;border-bottom:1px solid var(--borda)}
+.rua-item:last-child{border-bottom:none;padding-bottom:0}
+.rua-item strong{color:var(--branco)}
+
+/* ── LISTA ── */
+.lista-wrap{margin-top:20px;background:var(--card);border:1px solid var(--borda);border-radius:14px;padding:18px;display:none}
+.lista-wrap h2{font-size:1.3rem;font-weight:900;color:var(--laranja);margin-bottom:2px;letter-spacing:-.01em}
+.lista-wrap .sub{font-size:.7rem;font-weight:600;color:var(--cinza);margin-bottom:14px}
+.lista-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(155px,1fr));gap:13px}
+.lista-cat h4{font-size:.61rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--agua);margin-bottom:6px}
+.lista-cat ul{list-style:none;font-size:.76rem;color:#9ab5cc;line-height:2}
+.lista-cat li::before{content:'· ';color:var(--laranja);font-weight:800}
+.lista-note{background:rgba(255,210,63,.08);border:1px solid rgba(255,210,63,.2);border-radius:8px;padding:10px 13px;font-size:.74rem;color:var(--amarelo);margin-top:12px;line-height:1.6;font-weight:600}
+
+/* ── FAB ── */
+.fab{position:fixed;bottom:16px;right:16px;z-index:200}
+.fab-btn{border:none;border-radius:50px;padding:10px 16px;font-family:'Nunito',sans-serif;font-size:.76rem;font-weight:800;cursor:pointer;letter-spacing:.04em;transition:all .2s;text-transform:uppercase;background:var(--agua);color:var(--noite);box-shadow:0 4px 16px rgba(0,201,167,.35)}
+.fab-btn:hover{box-shadow:0 6px 24px rgba(0,201,167,.5);transform:translateY(-1px)}
+
+/* ── LOADING ── */
+.loading-overlay{position:fixed;inset:0;background:rgba(13,27,42,.93);z-index:600;display:none;align-items:center;justify-content:center;flex-direction:column;gap:14px}
+.loading-overlay.show{display:flex}
+.loading-txt{font-size:.95rem;font-weight:800;color:var(--agua);letter-spacing:.06em;text-transform:uppercase}
+.loading-sub{font-size:.76rem;color:var(--cinza);font-weight:600}
+.spinner{width:44px;height:44px;border:3px solid var(--borda);border-top:3px solid var(--laranja);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+@media(max-width:540px){
+  .hero{padding:14px 12px 0}
+  .hero-week{font-size:1.6rem}
+  .content{padding:14px 8px 100px}
+  .timeline::before{left:38px}
+  .meal-time{width:38px;font-size:.58rem}
+  .marmita-grid,.lista-grid{grid-template-columns:1fr 1fr}
+  .saude-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- SETUP MODAL -->
+<div class="setup-modal" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-logo">🌊</div>
+    <div class="setup-title">Joi · Agente de Saúde</div>
+    <div class="setup-sub">Para gerar cardápios personalizados, cole sua chave da API do Claude. Ela fica salva só no seu dispositivo — ninguém mais tem acesso.</div>
+    <label class="setup-label">Chave da API Anthropic</label>
+    <input class="setup-input" type="password" id="apiKeyInput" placeholder="sk-ant-..." />
+    <button class="setup-btn" onclick="salvarChave()">Entrar no agente ✦</button>
+    <div class="setup-note">Sua chave fica salva no navegador (localStorage).<br>Para trocar, clique no ⚙️ no canto superior.</div>
+  </div>
+</div>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-txt">Gerando cardápio</div>
+  <div class="loading-sub" id="loadingSub">Escolhendo receitas para a semana...</div>
+</div>
+
+<!-- MODAL SUBSTITUIÇÃO -->
+<div class="sub-modal" id="subModal" onclick="closeModalBg(event)">
+  <div class="sub-overlay"></div>
+  <div class="sub-box">
+    <div class="sub-hdr">
+      <div><h3 id="modalTitle">Substituições</h3><p id="modalDesc">Porções equivalentes</p></div>
+      <button class="sub-close" onclick="closeSubModal()">✕</button>
+    </div>
+    <div class="sub-body"><table class="sub-table" id="subTable"></table></div>
+  </div>
+</div>
+
+<!-- MODAL SAÚDE -->
+<div class="saude-modal" id="saudeModal" onclick="closeSaudeBg(event)">
+  <div class="sub-overlay"></div>
+  <div class="saude-box">
+    <div class="saude-hdr">
+      <div><h2>❤️ Painel de Saúde</h2><p>Bioimpedância · Exames · Medicamentos · Jun 2026</p></div>
+      <button class="saude-close" onclick="closeSaudeModal()">✕</button>
+    </div>
+    <div class="saude-body">
+
+      <!-- ALERTAS -->
+      <div class="saude-section">
+        <div class="saude-section-title">⚠️ Em acompanhamento médico</div>
+        <div class="alerta-box">
+          <div class="alerta-title">HbA1c 6,6% — Diabetes em tratamento</div>
+          <div class="alerta-txt">Endocrinologista prescreveu Bariat XR diariamente. Tomar no café da manhã sem falta. Evitar carboidratos simples em excesso.</div>
+        </div>
+        <div class="alerta-box">
+          <div class="alerta-title">Anemia ferropriva — Reposição em curso</div>
+          <div class="alerta-txt">Ferritina 9,8 (ref: 13–150) · Hemoglobina 11,1 (ref: 12–15). Noripurum EV a cada 15 dias por 2 meses. Energia no treino deve melhorar progressivamente.</div>
+        </div>
+      </div>
+
+      <!-- MEDICAMENTOS -->
+      <div class="saude-section">
+        <div class="saude-section-title">💊 Medicamentos diários</div>
+        <div class="med-item">
+          <div class="med-nome">Bariat XR (Metformina)</div>
+          <div class="med-dose">1 comprimido diariamente no café da manhã<br>Controle glicêmico — Dr. Matheus Monteiro</div>
+          <span class="med-badge">Todo dia no café ☕</span>
+        </div>
+        <div class="med-item">
+          <div class="med-nome">Vitamina D3 50.000 UI</div>
+          <div class="med-dose">1 comprimido por semana no café da manhã<br>Tomar com gordura (ovo ou requeijão) para absorção</div>
+          <span class="med-badge">1x por semana no café ☕</span>
+        </div>
+        <div class="med-item">
+          <div class="med-nome">Noripurum EV (Ferro)</div>
+          <div class="med-dose">1 ampola EV diluída em 250ml SF a cada 15 dias<br>Duração: 2 meses — Clínica Kury e Gaspar</div>
+          <span class="med-badge">A cada 15 dias 💉</span>
+        </div>
+      </div>
+
+      <!-- INBODY -->
+      <div class="saude-section">
+        <div class="saude-section-title">📊 Bioimpedância InBody — 16/06/2026</div>
+        <div class="saude-grid">
+          <div class="saude-item"><div class="saude-item-label">Peso</div><div class="saude-item-val val-alert">84,6 kg</div><div class="saude-item-ref">Ideal: 67,6 kg</div></div>
+          <div class="saude-item"><div class="saude-item-label">Gordura corporal</div><div class="saude-item-val val-bad">38,5%</div><div class="saude-item-ref">Acima do normal</div></div>
+          <div class="saude-item"><div class="saude-item-label">Massa muscular</div><div class="saude-item-val val-ok">28,7 kg</div><div class="saude-item-ref">Normal ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">Gordura visceral</div><div class="saude-item-val val-bad">Nível 15</div><div class="saude-item-ref">Acima (ref: até 10)</div></div>
+          <div class="saude-item"><div class="saude-item-label">TMB</div><div class="saude-item-val val-alert">1.495 kcal</div><div class="saude-item-ref">Ingestão rec: 1.843</div></div>
+          <div class="saude-item"><div class="saude-item-label">Pontuação InBody</div><div class="saude-item-val val-alert">70/100</div><div class="saude-item-ref">Em evolução</div></div>
+          <div class="saude-item"><div class="saude-item-label">Cintura-Quadril</div><div class="saude-item-val val-bad">0,91</div><div class="saude-item-ref">Ideal: 0,75–0,85</div></div>
+          <div class="saude-item"><div class="saude-item-label">Massa livre gordura</div><div class="saude-item-val val-ok">52,1 kg</div><div class="saude-item-ref">Normal ✓</div></div>
+        </div>
+      </div>
+
+      <!-- EXAMES -->
+      <div class="saude-section">
+        <div class="saude-section-title">🩸 Exames — 10/03/2026</div>
+        <div class="saude-grid">
+          <div class="saude-item"><div class="saude-item-label">HbA1c</div><div class="saude-item-val val-bad">6,6%</div><div class="saude-item-ref">DM: ≥6,5%</div></div>
+          <div class="saude-item"><div class="saude-item-label">Ferritina</div><div class="saude-item-val val-bad">9,8 ng/mL</div><div class="saude-item-ref">Ref: 13–150</div></div>
+          <div class="saude-item"><div class="saude-item-label">Hemoglobina</div><div class="saude-item-val val-bad">11,1 g/dL</div><div class="saude-item-ref">Ref: 12–15</div></div>
+          <div class="saude-item"><div class="saude-item-label">Vitamina D</div><div class="saude-item-val val-alert">22 ng/mL</div><div class="saude-item-ref">Ref: >20 ✓ limite</div></div>
+          <div class="saude-item"><div class="saude-item-label">Glicose jejum</div><div class="saude-item-val val-ok">96 mg/dL</div><div class="saude-item-ref">Ref: 70–99 ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">Colesterol total</div><div class="saude-item-val val-ok">181 mg/dL</div><div class="saude-item-ref">Ref: <190 ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">HDL</div><div class="saude-item-val val-ok">70 mg/dL</div><div class="saude-item-ref">Ref: >40 ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">Triglicérides</div><div class="saude-item-val val-ok">56 mg/dL</div><div class="saude-item-ref">Ref: <150 ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">HOMA-IR</div><div class="saude-item-val val-ok">0,64</div><div class="saude-item-ref">Ref: <2,70 ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">Creatinina</div><div class="saude-item-val val-ok">0,77</div><div class="saude-item-ref">Ref: 0,50–1,00 ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">TGO / TGP</div><div class="saude-item-val val-ok">22 / 16</div><div class="saude-item-ref">Fígado ok ✓</div></div>
+          <div class="saude-item"><div class="saude-item-label">Cortisol basal</div><div class="saude-item-val val-ok">8,5 µg/dL</div><div class="saude-item-ref">Ref: 6,2–18 ✓</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- HERO -->
+<header class="hero">
+  <div class="hero-top">
+    <div>
+      <div class="hero-brand">Joi · Saúde Carioca 🌊</div>
+      <div class="hero-week" id="heroWeek">Pronta para gerar?</div>
+      <div class="hero-sub" id="heroSub">Plano Vinícius Oliveira · CRN4-16100128</div>
+    </div>
+    <div class="hero-actions">
+      <button class="btn-gerar" id="btnGerar" onclick="gerarCardapio()">✦ Gerar semana nova</button>
+      <button class="btn-saude" onclick="openSaudeModal()">❤️ Minha saúde</button>
+    </div>
+  </div>
+  <div class="macro-row">
+    <div class="mpill"><span>~1.150</span>kcal/dia</div>
+    <div class="mpill"><span>75g</span>proteína</div>
+    <div class="mpill"><span>3g</span>creatina jejum</div>
+    <div class="mpill"><span>⚙️</span><span onclick="trocarChave()" style="cursor:pointer;text-decoration:underline">Trocar chave API</span></div>
+  </div>
+</header>
+
+<div class="gen-status" id="genStatus"></div>
+
+<nav class="days-nav">
+  <button class="day-tab active" onclick="showDay('seg',this)">Seg<span class="tbadge tb-musc">Musc+Cardio</span></button>
+  <button class="day-tab" onclick="showDay('ter',this)">Ter<span class="tbadge tb-musc">Musc+Cardio</span></button>
+  <button class="day-tab" onclick="showDay('qua',this)">Qua<span class="tbadge tb-mat">Personal</span></button>
+  <button class="day-tab" onclick="showDay('qui',this)">Qui<span class="tbadge tb-card">Cardio</span></button>
+  <button class="day-tab" onclick="showDay('sex',this)">Sex<span class="tbadge tb-mat">Personal+HO</span></button>
+  <button class="day-tab" onclick="showDay('sab',this)">Sáb<span class="tbadge tb-musc">Musculação</span></button>
+  <button class="day-tab" onclick="showDay('dom',this)">Dom<span class="tbadge tb-prep">Corrida+Prep</span></button>
+</nav>
+
+<main class="content" id="mainContent">
+  <div class="empty-state">
+    <div class="icon">🌊</div>
+    <h3>Clique em "Gerar semana nova"</h3>
+    <p>O cardápio da semana será criado com receitas variadas,<br>baseadas no seu plano do Vinícius.</p>
+  </div>
+</main>
+
+<div class="lista-wrap" id="listaMercado">
+  <h2>Lista de mercado</h2>
+  <div class="sub" id="listaData">Gerada com o cardápio da semana</div>
+  <div class="lista-grid" id="listaGrid"></div>
+  <div class="lista-note">💡 Compre frango e linguiça no domingo cedo. Folhas e frutas em duas etapas — metade domingo, metade quarta — para não murchar até sexta.</div>
+</div>
+
+<div class="fab"><button class="fab-btn" onclick="toggleLista()">🛒 Lista de mercado</button></div>
+
+<script>
+// ── TABELAS SUBSTITUIÇÃO ──────────────────────────────────────────────
+const DB = {
+  fruta:{title:'Frutas — Substituição',desc:'Porções equivalentes em calorias',
+    headers:['Fruta','Porção','Cal','Carbo',''],
+    rows:[
+      ['Banana prata ½','32g · ½ und','28 kcal','7,2g',true],
+      ['Banana prata','65g · 1 und','56 kcal','14,5g',true],
+      ['Morango','100g · 5 und','32 kcal','7,7g',true],
+      ['Abacaxi','150g · 2 fatias','68 kcal','18,0g',true],
+      ['Uva Thompson','60g · 8 cachos','41 kcal','10,5g',true],
+      ['Maçã verde','90g · 1 média','46 kcal','12,2g',true],
+      ['Mamão papaia','79g · ½ peq','27 kcal','7,0g',false],
+      ['Melão','115g · 1 fatia','36 kcal','9,2g',false],
+      ['Manga Tommy','70g · ½ média','45 kcal','11,8g',false],
+      ['Laranja','80g · ½ und','37 kcal','9,6g',false],
+    ]},
+  carbo:{title:'Carboidratos — Substituição',desc:'Porções equivalentes em calorias',
+    headers:['Carboidrato','Porção','Cal','Carbo',''],
+    rows:[
+      ['Pão francês','50g · 1 und','130 kcal','24,5g',true],
+      ['Pão wrap/folha','40g · 1 und','100 kcal','19,8g',true],
+      ['Pão forma integral','25g · 1 fatia','62 kcal','11,5g',true],
+      ['Goma de tapioca','20g · 1 col.','70 kcal','17,3g',true],
+      ['Macarrão cozido','100g','131 kcal','27,0g',true],
+      ['Batata doce assada','120g','108 kcal','26,0g',true],
+      ['Purê batata baroa','105g','95 kcal','22,5g',true],
+      ['Mandioca cozida','75g','98 kcal','26,0g',true],
+      ['Cuscuz milho','45g','74 kcal','16,0g',false],
+      ['Torrada','30g · 3 und','120 kcal','23,5g',false],
+      ['Inhame cozido','75g','88 kcal','20,0g',false],
+    ]},
+  proteina:{title:'Proteínas — Substituição',desc:'Porções equivalentes em calorias',
+    headers:['Proteína','Porção','Cal','Prot.',''],
+    rows:[
+      ['Peito frango desfiado','50g','83 kcal','19,5g',true],
+      ['Peito frango desfiado','75g','125 kcal','29,3g',true],
+      ['Filé frango grelhado','75g','122 kcal','28,0g',true],
+      ['Iscas frango airfryer','75g','125 kcal','28,5g',true],
+      ['Ovo mexido/frito','50g · 1 und','79 kcal','6,3g',true],
+      ['2 ovos mexidos','100g','155 kcal','12,6g',true],
+      ['Ovo cozido','55g · 1 und','77 kcal','6,5g',true],
+      ['Hambúrguer frango','80g · 1 und','180 kcal','22,0g',true],
+      ['Acém moído','83g','165 kcal','23,0g',false],
+      ['Filé merluza','90g','80 kcal','17,5g',false],
+      ['Camarão grelhado','90g','96 kcal','20,0g',false],
+    ]},
+  vegetal:{title:'Legumes — Substituição',desc:'Porções como acompanhamento',
+    headers:['Vegetal','Porção','Cal','Fibras',''],
+    rows:[
+      ['Brócolis assado','55g','35 kcal','2,6g',true],
+      ['Abobrinha assada','55g','30 kcal','1,2g',true],
+      ['Chips abóbora','80g','48 kcal','2,5g',true],
+      ['Alface','40g · 4 folhas','6 kcal','0,5g',true],
+      ['Agrião','35g','8 kcal','0,6g',true],
+      ['Pepino','livre','~5 kcal','0,3g',true],
+      ['Tomate','15g','3 kcal','0,2g',true],
+      ['Couve-flor assada','55g','28 kcal','1,5g',false],
+      ['Aspargos assados','55g','22 kcal','1,4g',false],
+    ]}
+};
+
+// ── PLANO BASE ────────────────────────────────────────────────────────
+const PLANO = `PERFIL: Joi, 37 anos, Copacabana/Rio. Altura: 167cm. Peso atual: 84,6kg. Meta: reduzir gordura (38,5% → ideal), manter massa muscular (28,7kg normal).
+
+SAÚDE IMPORTANTE:
+- Diabetes/pré-diabetes (HbA1c 6,6%) em tratamento com Bariat XR (metformina) — tomar no café da manhã TODO DIA
+- Anemia ferropriva em reposição (Noripurum EV a cada 15 dias)
+- Vitamina D3 50.000UI 1x/semana no café
+- Gordura visceral elevada (nível 15) — priorizar alimentos anti-inflamatórios
+- TMB: 1.495 kcal — manter ~1.150 kcal/dia com déficit controlado
+
+NUTRICIONISTA: Vinícius Oliveira CRN4-16100128. Meta: ~1.150 kcal/dia com gorduras incluídas (azeite/manteiga).
+
+ROTINA:
+- Seg/Ter/Qui: acorda 7h, trabalho 9h–18h (Barra da Tijuca), treino noturno
+- Qua/Sex: treino matinal 6h30 com personal
+- Sex: home office
+- Sáb: musculação ~10h; Dom: corrida 8-10km ~9h + meal prep
+
+CREATINA: 3g em jejum todos os dias.
+
+TREINOS: Seg=45min musc+30min cardio, Ter=igual, Qua=personal+cardio, Qui=40min cardio leve, Sex=personal+cardio, Sáb=musculação, Dom=corrida longa
+
+PREFERÊNCIAS:
+- Frango (peito) como proteína principal, ovos (adora)
+- NÃO come: arroz branco, feijão, legumes cozidos, couve crua, espinafre, beterraba
+- COME: folhas todas, pepino, tomate, ervas (salsa, cebolinha, coentro), legumes ASSADOS
+- Carboidratos: macarrão, batata (qualquer), mandioca, tapioca, pão francês (2x/semana — sex e sáb)
+- Frutas: uva Thompson, morango, abacaxi, banana prata, maçã verde
+- Temperos: adora muito tempero, páprica defumada, açafrão, gengibre, cominho, chimichurri
+- Gorduras: azeite + manteiga (incluir nas calorias ~+40kcal por refeição)
+- COLAÇÃO: VARIAR — iogurte no máximo 2x/semana
+- LANCHE NOTURNO: opções práticas do meal prep (A/B/C)
+
+CONSIDERAÇÕES GLICÊMICAS (diabetes):
+- Preferir carboidratos complexos e de baixo índice glicêmico
+- Batata doce > batata inglesa; mandioca com proteína; evitar carboidratos sozinhos
+- Incluir proteína e gordura junto com carboidrato sempre
+
+MARMITAS: 4 por semana (seg/ter/qua/qui) com marinadas DIFERENTES de frango.
+
+RETORNE EXATAMENTE este JSON sem markdown:
+{
+  "semana": "Semana X · [mês] 2026",
+  "tema": "tema criativo da semana",
+  "dias": {
+    "seg": {
+      "cafe": {"nome":"...","kcal":265,"itens":["Bariat XR no café ✓","..."],"dica":"..."},
+      "colacao": {"nome":"...","kcal":163,"itens":["..."]},
+      "almoco": {"nome":"Marmita Seg — ...","kcal":335,"itens":["..."],"dica":"..."},
+      "lanche_tarde": {"nome":"...","kcal":179,"itens":["..."]},
+      "pos_treino": {"nome":"...","kcal":225,"opcoes":["A: ...","B: ...","C: ..."]}
+    },
+    "ter": {"cafe":{...},"colacao":{...},"almoco":{...},"lanche_tarde":{...},"pos_treino":{...}},
+    "qua": {"cafe":{...},"colacao":{...},"almoco":{...},"lanche_tarde":{...},"noite":{...}},
+    "qui": {"cafe":{...},"colacao":{...},"almoco":{...},"lanche_tarde":{...},"pos_treino":{...}},
+    "sex": {
+      "cafe": {"nome":"Café com Pão Francês 🥖","kcal":275,"itens":["Bariat XR no café ✓","Pão francês (50g) + requeijão","..."],"dica":"..."},
+      "colacao":{...},"almoco":{...},"lanche_tarde":{...},
+      "noite": {"nome":"...","kcal":225,"opcoes":["A: ...","B: ...","C: ..."]}
+    },
+    "sab": {
+      "cafe": {"nome":"Café com Pão Francês 🥖","kcal":270,"itens":["Bariat XR no café ✓","Pão francês (50g)","..."],"dica":"..."},
+      "almoco_rua": {"botafogo":"...","gloria_centro":"...","geral":"..."}
+    },
+    "dom": {
+      "cafe_pre": {"nome":"Café pré-corrida","kcal":200,"itens":["..."],"dica":"..."},
+      "pos_corrida": {"nome":"...","kcal":186,"itens":["..."]},
+      "almoco_rua": {"sugestao":"..."},
+      "prep": {
+        "marinadas": ["Seg: ...","Ter: ...","Qua: ...","Qui: ..."],
+        "carbos": ["Seg: ...","Ter: ...","Qua: ...","Qui: ..."],
+        "extras": ["Caldinho: ...","Hambúrgueres: ...","Chips: ..."]
+      }
+    }
+  },
+  "lista_mercado": {
+    "proteinas":["..."],"verduras":["..."],"carboidratos":["..."],
+    "frutas":["..."],"temperos_gorduras":["..."],"bebidas":["..."]
+  }
+}`;
+
+// ── ESTADO ───────────────────────────────────────────────────────────
+let cardapioAtual = null;
+let semanaNum = parseInt(localStorage.getItem('joiSemana') || '0');
+
+// ── CHAVE API ─────────────────────────────────────────────────────────
+function verificarChave() {
+  const chave = localStorage.getItem('joiApiKey');
+  if (!chave) { document.getElementById('setupModal').classList.remove('hide'); }
+  else { document.getElementById('setupModal').classList.add('hide'); }
+}
+
+function salvarChave() {
+  const v = document.getElementById('apiKeyInput').value.trim();
+  if (!v.startsWith('sk-ant-')) { alert('Chave inválida. Deve começar com sk-ant-'); return; }
+  localStorage.setItem('joiApiKey', v);
+  document.getElementById('setupModal').classList.add('hide');
+}
+
+function trocarChave() {
+  localStorage.removeItem('joiApiKey');
+  document.getElementById('apiKeyInput').value = '';
+  document.getElementById('setupModal').classList.remove('hide');
+}
+
+// ── GERAR ─────────────────────────────────────────────────────────────
+async function gerarCardapio() {
+  const chave = localStorage.getItem('joiApiKey');
+  if (!chave) { trocarChave(); return; }
+  const btn = document.getElementById('btnGerar');
+  btn.disabled = true;
+  document.getElementById('loadingOverlay').classList.add('show');
+  semanaNum++;
+  localStorage.setItem('joiSemana', semanaNum);
+  const subs = ['Escolhendo marinadas...','Montando marmitas...','Calculando nutrientes...','Gerando lista de mercado...','Quase pronto...'];
+  let si = 0;
+  const subEl = document.getElementById('loadingSub');
+  const rot = setInterval(() => { subEl.textContent = subs[si++ % subs.length]; }, 1400);
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json', 'x-api-key': chave, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6', max_tokens: 1000,
+        system: 'Você é nutricionista assistente. Responda APENAS com JSON válido, sem markdown, sem texto antes ou depois.',
+        messages: [{role:'user', content: PLANO + '\n\nGere o cardápio para a Semana ' + semanaNum + '. Varie receitas em relação a semanas anteriores. Sempre inclua Bariat XR no primeiro item do café de todos os dias.'}]
+      })
+    });
+    const data = await resp.json();
+    if (data.error) throw new Error(data.error.message);
+    const txt = data.content?.[0]?.text || '';
+    const clean = txt.replace(/```json|```/g,'').trim();
+    cardapioAtual = JSON.parse(clean);
+    clearInterval(rot);
+    document.getElementById('loadingOverlay').classList.remove('show');
+    renderCardapio(cardapioAtual);
+    btn.disabled = false;
+    showStatus(`✦ ${cardapioAtual.semana} — ${cardapioAtual.tema || 'Cardápio personalizado'}`, false);
+  } catch(e) {
+    clearInterval(rot);
+    document.getElementById('loadingOverlay').classList.remove('show');
+    btn.disabled = false;
+    const errMsg = e?.message || JSON.stringify(e) || 'Erro desconhecido';
+    showStatus('Erro: ' + errMsg, true);
+    // Mostrar erro visível na tela
+    const main = document.getElementById('mainContent');
+    main.innerHTML = `<div style="background:rgba(239,68,68,.15);border:1px solid #ef4444;border-radius:12px;padding:20px;margin:20px 0;font-size:.8rem;color:#fca5a5;line-height:1.8">
+      <div style="font-weight:800;color:#ef4444;margin-bottom:8px;font-size:.9rem">⚠️ Erro ao gerar — detalhes:</div>
+      <div>${errMsg}</div>
+      <div style="margin-top:12px;color:var(--cinza)">Chave salva começa com: ${(localStorage.getItem('joiApiKey')||'').substring(0,12)}...</div>
+    </div>`;
+    console.error(e);
+  }
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────
+function renderCardapio(c) {
+  document.getElementById('heroWeek').textContent = c.semana || 'Semana atual';
+  document.getElementById('heroSub').textContent = (c.tema||'') + ' · Plano Vinícius Oliveira';
+  const d = c.dias;
+  const main = document.getElementById('mainContent');
+  main.innerHTML =
+    diaPanel('seg','Segunda-feira','Trabalho + musculação e cardio à noite','🏋️ Musc+Cardio','45min musc + 30min cardio · 20h–21h30',d.seg,'noturno') +
+    diaPanel('ter','Terça-feira','Mesma rotina da segunda','🏋️ Musc+Cardio','45min musc + 30min cardio · 20h–21h30',d.ter,'noturno') +
+    diaPanel('qua','Quarta-feira','Personal matinal — noite livre','🌅 Personal matinal','45+30min em jejum · 6h30',d.qua,'matinal') +
+    diaPanel('qui','Quinta-feira','Cardio leve — poupando para sexta','🚶 Cardio leve','40min · sem musculação',d.qui,'cardio') +
+    diaSexta(d.sex) + diaSabado(d.sab) + diaDomingo(d.dom);
+  document.querySelectorAll('.day-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.day-tab').forEach(t=>t.classList.remove('active'));
+  const p = document.getElementById('panel-seg');
+  if(p) p.classList.add('active');
+  document.querySelector('.day-tab').classList.add('active');
+  renderLista(c.lista_mercado);
+}
+
+function bariat() { return `<div class="bariat-lembrete">💊 Bariat XR hoje no café da manhã</div>`; }
+
+function itens(arr) { return (arr||[]).map(i=>`<div class="meal-item"><span class="sub-trigger" onclick="autoSub('${i.replace(/'/g,"")}')">${i}</span></div>`).join(''); }
+
+function opcoes(arr) { return (arr||[]).map(o=>`<div class="meal-item"><strong>${o}</strong></div>`).join(''); }
+
+function diaPanel(id,nome,desc,tLabel,tDesc,dia,tipo) {
+  if(!dia) return `<div class="day-panel" id="panel-${id}"></div>`;
+  const posKey = dia.pos_treino || dia.noite;
+  const isMat = tipo==='matinal';
+  return `<div class="day-panel" id="panel-${id}">
+    <div class="day-header">
+      <div><div class="day-name">${nome}</div><div class="day-desc">${desc}</div></div>
+      <div class="treino-chip"><div class="treino-chip-label">Treino</div>${tLabel}<br><span style="font-size:.7rem;color:var(--cinza)">${tDesc}</span></div>
+    </div>
+    ${bariat()}
+    <div class="timeline">
+      <div class="meal-row"><div class="meal-time">${isMat?'6h':'7h'}</div><div class="meal-dot dg"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">Água + Creatina</div><div class="meal-kcal">jejum</div></div>
+        <div class="meal-items"><div class="meal-item">300ml água + 3g creatina monoidratada</div></div></div></div>
+      ${isMat?`<div class="meal-row"><div class="meal-time">6h30</div><div class="meal-dot" style="background:var(--amarelo)"></div>
+        <div class="meal-card tm"><div class="meal-card-header"><div class="meal-name">🌅 Personal + cardio</div><div class="meal-kcal">45+30min jejum</div></div></div></div>`:''}
+      <div class="meal-row"><div class="meal-time">${isMat?'8h–9h':'9h'}</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.cafe?.nome||'Café da manhã'}</div><div class="meal-kcal">~${dia.cafe?.kcal||245} kcal</div></div>
+        <div class="meal-items">${itens(dia.cafe?.itens)}</div>${dia.cafe?.dica?`<div class="meal-tip">💡 ${dia.cafe.dica}</div>`:''}</div></div>
+      <div class="meal-row"><div class="meal-time">11h</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.colacao?.nome||'Colação'}</div><div class="meal-kcal">~${dia.colacao?.kcal||163} kcal</div></div>
+        <div class="meal-items">${itens(dia.colacao?.itens)}</div></div></div>
+      <div class="meal-row"><div class="meal-time">12h30</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.almoco?.nome||'Almoço'}</div><div class="meal-kcal">~${dia.almoco?.kcal||325} kcal</div></div>
+        <div class="meal-items">${itens(dia.almoco?.itens)}</div>${dia.almoco?.dica?`<div class="meal-tip">💡 ${dia.almoco.dica}</div>`:''}</div></div>
+      <div class="meal-row"><div class="meal-time">16h</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.lanche_tarde?.nome||'Lanche tarde'}</div><div class="meal-kcal">~${dia.lanche_tarde?.kcal||150} kcal</div></div>
+        <div class="meal-items">${itens(dia.lanche_tarde?.itens)}</div></div></div>
+      ${(tipo==='noturno'||tipo==='cardio')?`<div class="meal-row"><div class="meal-time">20h</div><div class="meal-dot dt"></div>
+        <div class="meal-card tc"><div class="meal-card-header"><div class="meal-name">${tipo==='cardio'?'🚶 Cardio leve':'🏋️ Treino'}</div><div class="meal-kcal">${tipo==='cardio'?'40min leve':'45min musc + 30min cardio'}</div></div></div></div>`:''}
+      <div class="meal-row"><div class="meal-time">${isMat?'19h':'21h30'}</div><div class="meal-dot dp"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${posKey?.nome||'Lanche da noite'}</div><div class="meal-kcal">~${posKey?.kcal||220} kcal</div></div>
+        <div class="meal-items">${opcoes(posKey?.opcoes)}</div></div></div>
+    </div></div>`;
+}
+
+function diaSexta(dia) {
+  if(!dia) return `<div class="day-panel" id="panel-sex"></div>`;
+  return `<div class="day-panel" id="panel-sex">
+    <div class="day-header">
+      <div><div class="day-name">Sexta-feira</div><div class="day-desc">Personal matinal + home office · Pão francês 🥖</div></div>
+      <div class="treino-chip"><div class="treino-chip-label">Treino</div>🌅 Personal + HO<br><span style="font-size:.7rem;color:var(--cinza)">6h30 · dia todo em casa</span></div>
+    </div>
+    ${bariat()}
+    <div class="timeline">
+      <div class="meal-row"><div class="meal-time">6h</div><div class="meal-dot dg"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">Água + Creatina</div><div class="meal-kcal">jejum</div></div>
+        <div class="meal-items"><div class="meal-item">300ml água + 3g creatina</div></div></div></div>
+      <div class="meal-row"><div class="meal-time">6h30</div><div class="meal-dot" style="background:var(--amarelo)"></div>
+        <div class="meal-card tm"><div class="meal-card-header"><div class="meal-name">🌅 Personal + cardio</div><div class="meal-kcal">45+30min jejum</div></div></div></div>
+      <div class="meal-row"><div class="meal-time">8h–9h</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.cafe?.nome||'Café com Pão Francês 🥖'}</div><div class="meal-kcal">~${dia.cafe?.kcal||275} kcal</div></div>
+        <div class="meal-items">${itens(dia.cafe?.itens)}</div>${dia.cafe?.dica?`<div class="meal-tip">💡 ${dia.cafe.dica}</div>`:''}</div></div>
+      <div class="meal-row"><div class="meal-time">11h</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.colacao?.nome||'Colação'}</div><div class="meal-kcal">~${dia.colacao?.kcal||163} kcal</div></div>
+        <div class="meal-items">${itens(dia.colacao?.itens)}</div></div></div>
+      <div class="meal-row"><div class="meal-time">12h30</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.almoco?.nome||'Almoço em casa'}</div><div class="meal-kcal">~${dia.almoco?.kcal||330} kcal</div></div>
+        <div class="meal-items">${itens(dia.almoco?.itens)}</div>${dia.almoco?.dica?`<div class="meal-tip">💡 ${dia.almoco.dica}</div>`:''}</div></div>
+      <div class="meal-row"><div class="meal-time">16h</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.lanche_tarde?.nome||'Lanche tarde'}</div><div class="meal-kcal">~${dia.lanche_tarde?.kcal||139} kcal</div></div>
+        <div class="meal-items">${itens(dia.lanche_tarde?.itens)}</div></div></div>
+      <div class="meal-row"><div class="meal-time">19h</div><div class="meal-dot dp"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.noite?.nome||'Lanche da noite'}</div><div class="meal-kcal">~${dia.noite?.kcal||225} kcal</div></div>
+        <div class="meal-items">${opcoes(dia.noite?.opcoes)}</div></div></div>
+    </div></div>`;
+}
+
+function diaSabado(dia) {
+  if(!dia) return `<div class="day-panel" id="panel-sab"></div>`;
+  const r = dia.almoco_rua||{};
+  return `<div class="day-panel" id="panel-sab">
+    <div class="day-header">
+      <div><div class="day-name">Sábado</div><div class="day-desc">Musculação ~10h · Pão francês 🥖 · tarde na rua</div></div>
+      <div class="treino-chip"><div class="treino-chip-label">Treino</div>🏋️ Musculação<br><span style="font-size:.7rem;color:var(--cinza)">~10h · academia fecha cedo</span></div>
+    </div>
+    ${bariat()}
+    <div class="timeline">
+      <div class="meal-row"><div class="meal-time">8h–9h</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.cafe?.nome||'Café com Pão Francês 🥖'}</div><div class="meal-kcal">~${dia.cafe?.kcal||270} kcal</div></div>
+        <div class="meal-items">${itens(dia.cafe?.itens)}</div>${dia.cafe?.dica?`<div class="meal-tip">💡 ${dia.cafe.dica}</div>`:''}</div></div>
+      <div class="meal-row"><div class="meal-time">10h</div><div class="meal-dot dt"></div>
+        <div class="meal-card tc"><div class="meal-card-header"><div class="meal-name">🏋️ Musculação</div><div class="meal-kcal">~60–75min</div></div></div></div>
+      <div class="meal-row"><div class="meal-time">13h</div><div class="meal-dot dp"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">Almoço na rua 🍽️</div><div class="meal-kcal">relaxado</div></div>
+        <div class="meal-items">
+          <div class="rua-item"><strong>Botafogo</strong><br>${r.botafogo||'Bráz Pizzaria, Eataly, Bar Urca — proteína + carbo + salada'}</div>
+          <div class="rua-item"><strong>Glória / Centro</strong><br>${r.gloria_centro||'Por quilo: frango/carne grelhada + batata/mandioca + folhas'}</div>
+          <div class="rua-item"><strong>Orientação geral</strong><br>${r.geral||'Proteína + carbo complexo + folhas. Evitar frituras. Se beber: vinho seco ou long neck.'}</div>
+        </div></div></div>
+    </div></div>`;
+}
+
+function diaDomingo(dia) {
+  if(!dia) return `<div class="day-panel" id="panel-dom"></div>`;
+  const prep = dia.prep||{};
+  return `<div class="day-panel" id="panel-dom">
+    <div class="day-header">
+      <div><div class="day-name">Domingo</div><div class="day-desc">Corrida longa · almoço na rua · Meal Prep</div></div>
+      <div class="treino-chip"><div class="treino-chip-label">Treino</div>🏃 Corrida longa<br><span style="font-size:.7rem;color:var(--cinza)">8–10km · ~9h</span></div>
+    </div>
+    ${bariat()}
+    <div class="timeline">
+      <div class="meal-row"><div class="meal-time">7h30</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.cafe_pre?.nome||'Café pré-corrida'}</div><div class="meal-kcal">~${dia.cafe_pre?.kcal||200} kcal</div></div>
+        <div class="meal-items">${itens(dia.cafe_pre?.itens)}</div>${dia.cafe_pre?.dica?`<div class="meal-tip">💡 ${dia.cafe_pre.dica}</div>`:''}</div></div>
+      <div class="meal-row"><div class="meal-time">9h</div><div class="meal-dot" style="background:var(--rosa)"></div>
+        <div class="meal-card tr"><div class="meal-card-header"><div class="meal-name">🏃 Corrida longa</div><div class="meal-kcal">8–10km · ~60min</div></div></div></div>
+      <div class="meal-row"><div class="meal-time">10h30</div><div class="meal-dot"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">${dia.pos_corrida?.nome||'Pós-corrida'}</div><div class="meal-kcal">~${dia.pos_corrida?.kcal||186} kcal</div></div>
+        <div class="meal-items">${itens(dia.pos_corrida?.itens)}</div></div></div>
+      <div class="meal-row"><div class="meal-time">13h</div><div class="meal-dot dp"></div>
+        <div class="meal-card"><div class="meal-card-header"><div class="meal-name">Almoço na rua 🍽️</div><div class="meal-kcal">você merece!</div></div>
+        <div class="meal-items"><div class="meal-item">${dia.almoco_rua?.sugestao||'Proteína + carbo + salada. Pode comer um pouco mais — gastou energia real.'}</div></div></div></div>
+    </div>
+    <div class="prep-wrap">
+      <div class="prep-hero"><h2>🥡 Meal Prep de Domingo</h2><p>~1h30 · rende a semana toda</p></div>
+      <div class="prep-body">
+        <div class="prep-block">
+          <div class="prep-block-title">Marinadas das 4 marmitas <span class="chip">4×75g frango</span></div>
+          ${(prep.marinadas||['Seg: limão-siciliano + alecrim','Ter: mostarda-mel','Qua: limão + alho','Qui: açafrão + gengibre']).map((m,i)=>`<div class="prep-step"><div class="n">${i+1}</div><div>${m}</div></div>`).join('')}
+          <div class="prep-note">Assar tudo junto 200°C por 25–30min · pode marinar sábado à noite</div>
+        </div>
+        <div class="prep-block">
+          <div class="prep-block-title">Carboidratos por marmita <span class="chip">1 assadeira</span></div>
+          ${(prep.carbos||['Seg: batata doce com páprica','Ter: macarrão ao azeite','Qua: purê de batata baroa','Qui: mandioca assada']).map((c,i)=>`<div class="prep-step"><div class="n">${i+1}</div><div>${c}</div></div>`).join('')}
+        </div>
+        <div class="prep-block">
+          <div class="prep-block-title">Extras para lanches noturnos <span class="chip">Freezar</span></div>
+          ${(prep.extras||['Caldinho de batata baroa com linguiça (4 porções)','Hambúrgueres de frango caseiros (6 und)','Chips de abóbora assada']).map((e,i)=>`<div class="prep-step"><div class="n">${i+1}</div><div>${e}</div></div>`).join('')}
+        </div>
+        <div style="margin-top:11px">
+          <div style="font-size:.62rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;color:var(--cinza);margin-bottom:8px">As 4 marmitas</div>
+          <div class="marmita-grid">
+            ${['seg','ter','qua','qui'].map((d,i)=>`<div class="marmita-c">
+              <div class="marmita-c-day">${['Segunda','Terça','Quarta','Quinta'][i]}</div>
+              <div class="marmita-c-items">${prep.marinadas?.[i]||'Frango + carbo + legumes'}<br>Brócolis/abobrinha assados<br>Folhas à parte</div>
+              <div class="marmita-c-kcal">~320–335 kcal</div></div>`).join('')}
+          </div>
+        </div>
+        <div class="var-box">
+          <h3>Buscar receitas novas 🔄</h3>
+          <p>Clique para buscar no Google com os ingredientes da semana:</p>
+          <div class="var-tags">
+            <span class="vtag" onclick="abrirR('frango airfryer temperado')">🔍 Frango airfryer</span>
+            <span class="vtag" onclick="abrirR('batata baroa receita saudavel')">🔍 Batata baroa</span>
+            <span class="vtag" onclick="abrirR('sopa batata baroa linguica')">🔍 Sopa batata baroa</span>
+            <span class="vtag" onclick="abrirR('hamburguer frango caseiro')">🔍 Hambúrguer frango</span>
+            <span class="vtag" onclick="abrirR('meal prep frango semanal')">🔍 Meal prep</span>
+            <span class="vtag" onclick="abrirR('chips abobora airfryer')">🔍 Chips abóbora</span>
+          </div>
+        </div>
+      </div>
+    </div></div>`;
+}
+
+function renderLista(lista) {
+  if(!lista) return;
+  const grid = document.getElementById('listaGrid');
+  const cats = {proteinas:'🍗 Proteínas',verduras:'🥬 Verduras',carboidratos:'🍠 Carboidratos',frutas:'🍓 Frutas',temperos_gorduras:'🫙 Temperos',bebidas:'🧃 Bebidas'};
+  grid.innerHTML = Object.entries(cats).map(([k,v])=>`<div class="lista-cat"><h4>${v}</h4><ul>${(lista[k]||[]).map(i=>`<li>${i}</li>`).join('')}</ul></div>`).join('');
+}
+
+// ── SUB ───────────────────────────────────────────────────────────────
+function autoSub(t) {
+  const tl = t.toLowerCase();
+  if(tl.includes('frango')||tl.includes('ovo')||tl.includes('hambúrguer')||tl.includes('hamburguer')) openModal('proteina');
+  else if(tl.includes('banana')||tl.includes('morango')||tl.includes('abacaxi')||tl.includes('uva')||tl.includes('maçã')||tl.includes('fruta')) openModal('fruta');
+  else if(tl.includes('macarrão')||tl.includes('batata')||tl.includes('mandioca')||tl.includes('pão')||tl.includes('tapioca')||tl.includes('cuscuz')||tl.includes('torrada')||tl.includes('wrap')) openModal('carbo');
+  else if(tl.includes('brócolis')||tl.includes('abobrinha')||tl.includes('legume')||tl.includes('abóbora')) openModal('vegetal');
+  else openModal('carbo');
+}
+
+function openModal(cat) {
+  const d = DB[cat]; if(!d) return;
+  document.getElementById('modalTitle').textContent = d.title;
+  document.getElementById('modalDesc').textContent = d.desc;
+  const t = document.getElementById('subTable');
+  let h = '<thead><tr>'+d.headers.map(x=>`<th>${x}</th>`).join('')+'</tr></thead><tbody>';
+  d.rows.forEach(r=>{ h+=`<tr><td>${r[0]}${r[4]?'<span class="ptag">✓</span>':''}</td><td style="color:var(--cinza)">${r[1]}</td><td><span class="ktag">${r[2]}</span></td><td style="color:var(--cinza)">${r[3]}</td><td></td></tr>`; });
+  h+='</tbody>'; t.innerHTML=h;
+  document.getElementById('subModal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeSubModal(){ document.getElementById('subModal').classList.remove('open'); document.body.style.overflow=''; }
+function closeModalBg(e){ if(e.target.classList.contains('sub-overlay')) closeSubModal(); }
+
+// ── SAÚDE MODAL ───────────────────────────────────────────────────────
+function openSaudeModal(){ document.getElementById('saudeModal').classList.add('open'); document.body.style.overflow='hidden'; }
+function closeSaudeModal(){ document.getElementById('saudeModal').classList.remove('open'); document.body.style.overflow=''; }
+function closeSaudeBg(e){ if(e.target.classList.contains('sub-overlay')) closeSaudeModal(); }
+
+// ── NAV ───────────────────────────────────────────────────────────────
+function showDay(day,btn) {
+  document.querySelectorAll('.day-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.day-tab').forEach(t=>t.classList.remove('active'));
+  const p = document.getElementById('panel-'+day);
+  if(p){ p.classList.add('active'); btn.classList.add('active'); }
+  document.getElementById('listaMercado').style.display='none';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function toggleLista(){
+  const l=document.getElementById('listaMercado');
+  if(!l.style.display||l.style.display==='none'){l.style.display='block';setTimeout(()=>l.scrollIntoView({behavior:'smooth',block:'start'}),50);}
+  else{l.style.display='none';}
+}
+
+function showStatus(msg,err){
+  const s=document.getElementById('genStatus');
+  s.textContent=msg; s.className='gen-status show'+(err?' err':'');
+  setTimeout(()=>s.classList.remove('show'),6000);
+}
+
+function abrirR(q){ window.open('https://www.google.com/search?q='+encodeURIComponent(q+' receita'),'_blank'); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closeSubModal(); closeSaudeModal(); }});
+
+// ── INIT ──────────────────────────────────────────────────────────────
+verificarChave();
+document.getElementById('heroWeek').textContent = 'Semana ' + (semanaNum+1) + ' — pronta para gerar';
+</script>
+</body>
+</html>
